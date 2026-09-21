@@ -1,0 +1,13 @@
+# Third-Party Licenses
+
+This project uses the following open-source components:
+
+{{ range . }}
+## {{ .Name }}
+
+* **License**: {{ .LicenseName }}
+* **Source**: {{ .LicenseURL }}
+   
+{{ .LicenseText }}
+
+{{ end }}
