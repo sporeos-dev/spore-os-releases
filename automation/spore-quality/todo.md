@@ -10,4 +10,3 @@
 - `golangci-lint` — no issues
 - `govulncheck` — no known vulnerabilities
 
-also smoke tests?
