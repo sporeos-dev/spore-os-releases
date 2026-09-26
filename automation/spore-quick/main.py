@@ -43,16 +43,6 @@ def run_go_checks(project_root: Path) -> list[str]:
 	return failures
 
 
-def run_c_checks(project_root: Path) -> list[str]:
-	print("==> Running make check...")
-	try:
-		subprocess.run(["make", "check"], cwd=project_root, check=True)
-	except (OSError, subprocess.CalledProcessError):
-		return ["check"]
-
-	return []
-
-
 def main() -> int:
 	parser = argparse.ArgumentParser()
 	project_paths = tuple(project_path for project_path, _ in PROJECTS)
@@ -71,8 +61,6 @@ def main() -> int:
 		print(f"Checking {project_path} ({language})")
 		if language == "go":
 			failures.extend((project_path, check) for check in run_go_checks(project_root))
-		elif language == "c":
-			failures.extend((project_path, check) for check in run_c_checks(project_root))
 
 	if failures:
 		print("Quick check failures:", file=sys.stderr)

@@ -45,13 +45,18 @@ def run_go_checks(project_root: Path) -> list[str]:
 
 
 def run_c_checks(project_root: Path) -> list[str]:
-	print("==> Running make analyze...")
-	try:
-		subprocess.run(["make", "analyze"], cwd=project_root, check=True)
-	except (OSError, subprocess.CalledProcessError):
-		return ["analyze"]
+	failures: list[str] = []
+	for check, command in (
+		("check", ["make", "check"]),
+		("analyze", ["make", "analyze"]),
+	):
+		print(f"==> Running make {check}...")
+		try:
+			subprocess.run(command, cwd=project_root, check=True)
+		except (OSError, subprocess.CalledProcessError):
+			failures.append(check)
 
-	return []
+	return failures
 
 
 def main() -> int:
