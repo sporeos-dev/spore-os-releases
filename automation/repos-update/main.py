@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-from copy_repomap import main as copy_repomap
+from copy_instructions import main as copy_instructions
 
 def main() -> None:
-	copy_repomap()
+	copy_instructions()
 
 if __name__ == "__main__":
 	main()
