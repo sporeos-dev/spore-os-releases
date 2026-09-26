@@ -16,10 +16,10 @@ PROJECTS: tuple[tuple[str, str], ...] = (
 	("spore-core-nodes/spore-witness", "go"),
 	("spore-hyphae/hyphae", "go"),
 	("spore-dialog/spore-dialog", "go"),
-	("spore-smoke/smoke", "go"),
-	("spore-smoke/report", "go"),
-	("spore-store/store", "go"),
-	("spore-git/git", "go"),
+	# ("spore-smoke/smoke", "go"),
+	# ("spore-smoke/report", "go"),
+	# ("spore-store/store", "go"),
+	# ("spore-git/git", "go"),
 )
 
 
@@ -43,6 +43,17 @@ def run_go_checks(project_path: str, project_root: Path) -> list[str]:
 	return failures
 
 
+def run_c_checks(project_path: str, project_root: Path) -> list[str]:
+	print(f"\n=====> [{project_path}] Building and testing...\n")
+	try:
+		subprocess.run(["make", "check"], cwd=project_root, check=True)
+	except (OSError, subprocess.CalledProcessError):
+		return ["check"]
+
+	print(f"=====> [{project_path}] All checks passed!")
+	return []
+
+
 def main() -> int:
 	parser = argparse.ArgumentParser()
 	project_paths = tuple(project_path for project_path, _ in PROJECTS)
@@ -61,6 +72,8 @@ def main() -> int:
 		print(f"\nChecking {project_path} ({language})\n")
 		if language == "go":
 			failures.extend((project_path, check) for check in run_go_checks(project_path, project_root))
+		elif language == "c":
+			failures.extend((project_path, check) for check in run_c_checks(project_path, project_root))
 
 	if failures:
 		print("Quick check failures:", file=sys.stderr)

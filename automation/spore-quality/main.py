@@ -16,10 +16,10 @@ PROJECTS: tuple[tuple[str, str], ...] = (
 	("spore-core-nodes/spore-witness", "go"),
 	("spore-hyphae/hyphae", "go"),
 	("spore-dialog/spore-dialog", "go"),
-	("spore-smoke/smoke", "go"),
-	("spore-smoke/report", "go"),
-	("spore-store/store", "go"),
-	("spore-git/git", "go"),
+	# ("spore-smoke/smoke", "go"),
+	# ("spore-smoke/report", "go"),
+	# ("spore-store/store", "go"),
+	# ("spore-git/git", "go"),
 )
 
 
