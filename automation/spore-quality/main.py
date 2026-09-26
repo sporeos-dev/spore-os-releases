@@ -23,7 +23,7 @@ PROJECTS: tuple[tuple[str, str], ...] = (
 )
 
 
-def run_go_checks(project_root: Path) -> list[str]:
+def run_go_checks(project_path: str, project_root: Path) -> list[str]:
 	failures: list[str] = []
 	for check, command in (
 		("race detector", ["go", "test", "-race", "./..."]),
@@ -32,25 +32,25 @@ def run_go_checks(project_root: Path) -> list[str]:
 		("golangci-lint", ["golangci-lint", "run", "--disable", "errcheck"]),
 		("govulncheck", ["govulncheck", "./..."]),
 	):
-		print(f"==> Running {check}...")
+		print(f"\n=====> [{project_path}] Running {check}...\n")
 		try:
 			subprocess.run(command, cwd=project_root, check=True)
 		except (OSError, subprocess.CalledProcessError):
 			failures.append(check)
 
 	if not failures:
-		print("==> All quality checks passed.")
+		print(f"=====> [{project_path}] All quality checks passed!")
 
 	return failures
 
 
-def run_c_checks(project_root: Path) -> list[str]:
+def run_c_checks(project_path: str, project_root: Path) -> list[str]:
 	failures: list[str] = []
 	for check, command in (
 		("check", ["make", "check"]),
 		("analyze", ["make", "analyze"]),
 	):
-		print(f"==> Running make {check}...")
+		print(f"\n=====> [{project_path}] Running make {check}...\n")
 		try:
 			subprocess.run(command, cwd=project_root, check=True)
 		except (OSError, subprocess.CalledProcessError):
@@ -74,11 +74,11 @@ def main() -> int:
 
 	for project_path, language in projects:
 		project_root = development_directory / project_path
-		print(f"Checking {project_path} ({language})")
+		print(f"\nChecking {project_path} ({language})\n")
 		if language == "go":
-			failures.extend((project_path, check) for check in run_go_checks(project_root))
+			failures.extend((project_path, check) for check in run_go_checks(project_path, project_root))
 		elif language == "c":
-			failures.extend((project_path, check) for check in run_c_checks(project_root))
+			failures.extend((project_path, check) for check in run_c_checks(project_path, project_root))
 
 	if failures:
 		print("Quality check failures:", file=sys.stderr)

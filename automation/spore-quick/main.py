@@ -23,7 +23,7 @@ PROJECTS: tuple[tuple[str, str], ...] = (
 )
 
 
-def run_go_checks(project_root: Path) -> list[str]:
+def run_go_checks(project_path: str, project_root: Path) -> list[str]:
 	failures: list[str] = []
 	for message, command in (
 		("Cleaning build and test cache...", ["go", "clean", "-cache", "-testcache"]),
@@ -31,14 +31,14 @@ def run_go_checks(project_root: Path) -> list[str]:
 		("Vetting...", ["go", "vet", "./..."]),
 		("Testing...", ["go", "test", "./..."]),
 	):
-		print(f"==> {message}")
+		print(f"\n=====> [{project_path}] {message}\n")
 		try:
 			subprocess.run(command, cwd=project_root, check=True)
 		except (OSError, subprocess.CalledProcessError):
 			failures.append(command[1])
 
 	if not failures:
-		print("==> All checks passed.")
+		print(f"=====> [{project_path}] All checks passed!")
 
 	return failures
 
@@ -58,9 +58,9 @@ def main() -> int:
 
 	for project_path, language in projects:
 		project_root = development_directory / project_path
-		print(f"Checking {project_path} ({language})")
+		print(f"\nChecking {project_path} ({language})\n")
 		if language == "go":
-			failures.extend((project_path, check) for check in run_go_checks(project_root))
+			failures.extend((project_path, check) for check in run_go_checks(project_path, project_root))
 
 	if failures:
 		print("Quick check failures:", file=sys.stderr)

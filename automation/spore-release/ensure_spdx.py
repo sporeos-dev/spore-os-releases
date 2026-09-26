@@ -48,6 +48,7 @@ def _add_headers(development_directory: Path, repositories: tuple[str, ...], hea
 		if not repository.is_dir():
 			raise FileNotFoundError(f"Repository does not exist: {repository}")
 
+		print(f"\nUpdating SPDX headers in {repository_name}\n")
 		subprocess.run(
 			["addlicense", "-f", str(header), "-v", "."],
 			cwd=repository,

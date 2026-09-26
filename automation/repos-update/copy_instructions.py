@@ -40,6 +40,7 @@ def main() -> None:
 			sys.exit(f"Canonical instruction does not exist: {source}")
 
 	for repository in REPOSITORIES:
+		print(f"\nUpdating instructions for {repository}\n")
 		for instruction_path in INSTRUCTION_PATHS:
 			source = canonical_repository / instruction_path
 			destination = development_root / repository / instruction_path

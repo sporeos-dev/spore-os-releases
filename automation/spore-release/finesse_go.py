@@ -13,4 +13,5 @@ def finesse_go() -> None:
 		if not (module / "go.mod").is_file():
 			raise FileNotFoundError(f"Go module does not exist: {module}")
 
+		print(f"\nTidying Go module {module_path}\n")
 		subprocess.run(["go", "mod", "tidy"], cwd=module, check=True)

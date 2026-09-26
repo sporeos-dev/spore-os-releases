@@ -8,7 +8,7 @@ TOOLS = (
 
 def install_for_go() -> None:
 	for name, module in TOOLS:
-		print(f"==> Installing {name}...")
+		print(f"\n==> Installing {name}...\n")
 		subprocess.run(["go", "install", module], check=True)
 
 	print("==> Done. Ensure Go bin directory is on your PATH.")
