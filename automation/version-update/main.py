@@ -16,7 +16,7 @@ def main() -> None:
 	subprocess.run(["brew", "upgrade", "go"], check=True)
 
 	for name, module in TOOLS:
-		print(f"==> Updating {name}...")
+		print(f"\n==> Updating {name}...\n")
 		subprocess.run(["go", "install", module], check=True)
 
 

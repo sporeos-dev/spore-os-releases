@@ -28,6 +28,7 @@ def update_attributions() -> None:
 		if not (module / "go.mod").is_file():
 			raise FileNotFoundError(f"Go module does not exist: {module}")
 
+		print(f"\nUpdating attributions for {module_path}\n")
 		with (module.parent / "ATTRIBUTIONS.md").open("w", encoding="utf-8") as output:
 			subprocess.run(
 				[

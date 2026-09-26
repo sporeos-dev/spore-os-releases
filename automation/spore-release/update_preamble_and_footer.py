@@ -26,6 +26,7 @@ def update_preamble_and_footer() -> None:
 		if not readme.is_file():
 			continue
 
+		print(f"\nUpdating README preamble and footer for {repository_name}\n")
 		contents = readme.read_text(encoding="utf-8")
 		footer = footer_template.replace("LICENSE_TYPE", license_type).rstrip()
 		updated_contents = _replace_section(contents, "PREAMBLE", preamble)
