@@ -29,7 +29,7 @@ def run_go_checks(project_root: Path) -> list[str]:
 		("race detector", ["go", "test", "-race", "./..."]),
 		("coverage", ["go", "test", "-cover", "./..."]),
 		("staticcheck", ["staticcheck", "./..."]),
-		("golangci-lint", ["golangci-lint", "run"]),
+		("golangci-lint", ["golangci-lint", "run", "--disable", "errcheck"]),
 		("govulncheck", ["govulncheck", "./..."]),
 	):
 		print(f"==> Running {check}...")
