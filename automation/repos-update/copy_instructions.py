@@ -24,6 +24,7 @@ REPOSITORIES = (
 	"spore-smoke",
 
     "spore-git",
+    "foundry-alias",
 )
 
 
