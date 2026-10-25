@@ -34,13 +34,25 @@ def main() -> None:
 		sys.exit("DEV must point to the directory containing the Spore OS repositories.")
 
 	development_root = Path(dev_directory).expanduser().resolve()
+	repositories = list(REPOSITORIES)
+	current_repository = os.environ.get("cwd")
+	if current_repository:
+		current_repository_path = Path(current_repository).expanduser().resolve()
+		if (
+			current_repository_path.parent == development_root
+			and current_repository_path.is_dir()
+			and current_repository_path.name != RELEASES_REPOSITORY
+			and current_repository_path.name not in repositories
+		):
+			repositories.append(current_repository_path.name)
+
 	canonical_repository = development_root / RELEASES_REPOSITORY
 	for instruction_path in INSTRUCTION_PATHS:
 		source = canonical_repository / instruction_path
 		if not source.is_file():
 			sys.exit(f"Canonical instruction does not exist: {source}")
 
-	for repository in REPOSITORIES:
+	for repository in repositories:
 		print(f"\nUpdating instructions for {repository}\n")
 		for instruction_path in INSTRUCTION_PATHS:
 			source = canonical_repository / instruction_path
