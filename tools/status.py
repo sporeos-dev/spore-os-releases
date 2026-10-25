@@ -5,12 +5,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-import subprocess
 import sys
 
-
-REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
-SIBLING_ROOT = REPOSITORY_ROOT.parent
+from repositories import REPOSITORY_ROOT, SIBLING_ROOT, git, location, repositories, tracking_status
 
 
 @dataclass(frozen=True)
@@ -25,19 +22,7 @@ class ChangeSummary:
 
 
 def repository_changes(repository: Path) -> ChangeSummary:
-    result = subprocess.run(
-        [
-            "git",
-            "-C",
-            str(repository),
-            "status",
-            "--porcelain=v1",
-            "--untracked-files=normal",
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    result = git(repository, "status", "--porcelain=v1", "--untracked-files=normal")
     if result.returncode:
         message = result.stderr.strip() or "git status failed"
         raise RuntimeError(f"{repository}: {message}")
@@ -56,29 +41,14 @@ def repository_changes(repository: Path) -> ChangeSummary:
 
     return ChangeSummary(staged, unstaged, untracked)
 
-
-def sibling_repositories() -> list[Path]:
-    return sorted(
-        (
-            path
-            for path in SIBLING_ROOT.iterdir()
-            if (
-                path.is_dir()
-                and (path / ".git").exists()
-            )
-        ),
-        key=lambda path: path.name.casefold(),
-    )
-
-
 def main() -> int:
-    repositories = sibling_repositories()
-    if not repositories:
+    repository_paths = repositories()
+    if not repository_paths:
         print(f"No sibling Git repositories found under {SIBLING_ROOT}.")
         return 0
 
     changed_repositories: list[tuple[Path, ChangeSummary]] = []
-    for repository in repositories:
+    for repository in repository_paths:
         try:
             summary = repository_changes(repository)
         except (OSError, RuntimeError) as error:
@@ -91,16 +61,24 @@ def main() -> int:
         print("No changes found in sibling repositories.")
         return 0
 
-    print("Repository (relative to spore-os-releases)   staged  unstaged  untracked  total")
+    print(
+        "Repository (relative to spore-os-releases)   staged  unstaged  "
+        "untracked  total  branch  upstream  ahead  behind"
+    )
     for repository, summary in changed_repositories:
-        location = (
-            Path(".")
-            if repository == REPOSITORY_ROOT
-            else Path("..") / repository.name
-        )
+        try:
+            tracking = tracking_status(repository)
+        except RuntimeError as error:
+            print(f"error: {error}", file=sys.stderr)
+            return 1
+        branch = tracking.branch if tracking else " detached"
+        upstream = tracking.upstream if tracking else "—"
+        ahead = tracking.ahead if tracking else "—"
+        behind = tracking.behind if tracking else "—"
         print(
-            f"{location!s:<42} {summary.staged:>7} {summary.unstaged:>9}"
+            f"{location(repository):<42} {summary.staged:>7} {summary.unstaged:>9}"
             f" {summary.untracked:>10} {summary.total:>6}"
+            f"  {branch:<8} {upstream:<14} {ahead:>5} {behind:>6}"
         )
     return 0
 
