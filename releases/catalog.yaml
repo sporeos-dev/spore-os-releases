@@ -1,0 +1,18 @@
+# Copyright 2026 Matt Harrison
+# SPDX-License-Identifier: Apache-2.0
+
+releases:
+  - version: 0.1.0
+    tag: v0.1.0
+    state: alpha
+    date: 2026-06-07
+    platforms:
+      - opsys: linux
+        name: spore-os-install-linux.tar.gz
+        checksum: sha256:09c9dc84f70f158fc8a701c34ca62ce1c0946e164953ca92b60b2274aa938a08
+      - opsys: macos
+        name: spore-os-install-macos.tar.gz
+        checksum: sha256:7b4227edfef89ce6190e939328e1d18b2efe5ab70600aa513394d85ebb44a88e
+      - opsys: windows
+        name: spore-os-install-windows.zip
+        checksum: sha256:2f2fb08a7044971a244156346bb9397325efc4079ec39151a9ea0d5efdda39ee
