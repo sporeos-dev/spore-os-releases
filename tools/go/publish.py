@@ -273,8 +273,8 @@ def verify_store_manifest(store_manifest: Path, manifest: Path) -> None:
 def verify_store_worktree(store_catalog: Path, store_manifest: Path) -> None:
 	repository = Path(run_git(store_catalog.parent, "rev-parse", "--show-toplevel")).resolve()
 	try:
-		catalog_path = store_catalog.resolve().relative_to(repository)
-		manifest_path = store_manifest.resolve().relative_to(repository)
+		catalog_path = store_catalog.resolve().relative_to(repository).as_posix()
+		manifest_path = store_manifest.resolve().relative_to(repository).as_posix()
 	except ValueError as error:
 		raise ValueError(
 			"The store catalog and manifest must be inside its Git repository."
@@ -290,7 +290,7 @@ def verify_store_worktree(store_catalog: Path, store_manifest: Path) -> None:
 	untracked = set(
 		run_git(repository, "ls-files", "--others", "--exclude-standard").splitlines()
 	)
-	unexpected_untracked = untracked - {str(manifest_path)}
+	unexpected_untracked = untracked - {manifest_path}
 	if unexpected_untracked:
 		files = "\n".join(sorted(unexpected_untracked))
 		raise ValueError(
@@ -299,9 +299,9 @@ def verify_store_worktree(store_catalog: Path, store_manifest: Path) -> None:
 		)
 
 	changed_paths = set(run_git(repository, "diff", "--name-only").splitlines())
-	expected_changed_paths = {str(catalog_path), str(manifest_path)}
+	expected_changed_paths = {catalog_path, manifest_path}
 	if (
-		str(catalog_path) not in changed_paths
+		catalog_path not in changed_paths
 		or not changed_paths <= expected_changed_paths
 	):
 		changes = "\n".join(sorted(changed_paths)) or "none"
@@ -370,8 +370,14 @@ def run_gh(*arguments: str) -> str:
 
 
 def github_cli() -> str:
+	windows_install = (
+		Path(os.environ.get("ProgramFiles", r"C:\Program Files"))
+		/ "GitHub CLI"
+		/ "gh.exe"
+	)
 	candidates = (
 		shutil.which("gh"),
+		str(windows_install),
 		"/opt/homebrew/bin/gh",
 		"/usr/local/bin/gh",
 	)
