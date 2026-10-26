@@ -2,6 +2,15 @@
 # SPDX-License-Identifier: Apache-2.0
 
 releases:
+  - version: 0.2.2
+    tag: v0.2.2
+    state: alpha
+    date: 2026-10-26
+    platforms:
+      - opsys: macos
+        arch: universal
+        name: spore-os-install-macos-universal.tar.gz
+        checksum: sha256:d5884c4f17a39f37077d0ca547ffdba2c8fe5504663c9ef9ec202645098b0327
   - version: 0.1.0
     tag: v0.1.0
     state: alpha
