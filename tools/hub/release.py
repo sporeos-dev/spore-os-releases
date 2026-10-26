@@ -126,7 +126,11 @@ def main() -> int:
 
         version, is_new = determine_version()
         check_tags(version, is_new)
-        print(f"Spore OS v{version} ({'new release' if is_new else 'joining in-flight release'})")
+        current = common.manifest_version()
+        if is_new:
+            print(f"Version: {current} -> {version} (new release; spored manifest is bumped after a successful build)")
+        else:
+            print(f"Version: {version} (joining the in-flight release; no bump)")
 
         if not arguments.skip_checks:
             run_checks()
@@ -147,6 +151,7 @@ def main() -> int:
 
         if is_new:
             common.commit_and_push(spore_os, [str(SPORED_MANIFEST)], common.release_subject(version))
+            print(f"Bumped spored to {version}; committed and pushed {common.head(spore_os)[:7]} in spore-os.")
 
         common.write_flat_yaml(
             DIST / "release.yaml",
