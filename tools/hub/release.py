@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Prepare a full Spore OS release for this host: gate, check, build, archive.
 
-Run on each OS you ship. The first run bumps the spored version and pushes it; runs on
-other hosts (and reruns before publish) reuse that version. Inspect releases/dist and
-release-notes.md, then run publish.py.
+Run on each OS you ship. Every run bumps the spored patch version and pushes it, so each
+host releases independently. Inspect releases/dist and release-notes.md, then run publish.py.
 """
 
 from __future__ import annotations
@@ -26,25 +25,10 @@ def banner(message: str) -> None:
     print(f"\n=====> {message}\n", flush=True)
 
 
-def determine_version() -> tuple[str, bool]:
-    """Returns (version, is_new). A version is joined while this host has not published it."""
-    current = common.manifest_version()
-    subject = common.run_git(
-        SIBLING_ROOT / "spore-os", "log", "-1", "--format=%s", "--", str(SPORED_MANIFEST)
-    )
-    joining = (
-        subject == common.release_subject(current)
-        and common.platform_key() not in common.catalog_platforms(current)
-    )
-    return (current, False) if joining else (common.next_patch(current), True)
-
-
-def check_tags(version: str, is_new: bool) -> None:
+def check_tags(version: str) -> None:
     tag = f"v{version}"
     for name in COMPONENTS:
-        repository = SIBLING_ROOT / name
-        existing = common.tag_commit(repository, tag)
-        if is_new and existing:
+        if common.tag_commit(SIBLING_ROOT / name, tag):
             raise ReleaseError(f"{name}: tag {tag} already exists.")
 
 
@@ -122,20 +106,16 @@ def main() -> int:
         banner(f"Gating repositories ({common.platform_key()})")
         common.gate_repositories(fetch=True)
 
-        version, is_new = determine_version()
-        check_tags(version, is_new)
         current = common.manifest_version()
-        if is_new:
-            print(f"Version: {current} -> {version} (new release; spored manifest is bumped after a successful build)")
-        else:
-            print(f"Version: {version} (joining the in-flight release; no bump)")
+        version = common.next_patch(current)
+        check_tags(version)
+        print(f"Version: {current} -> {version} (spored manifest is bumped after a successful build)")
 
         if not arguments.skip_checks:
             run_checks()
 
         spore_os = SIBLING_ROOT / "spore-os"
-        if is_new:
-            common.set_manifest_version(version)
+        common.set_manifest_version(version)
         try:
             banner("Building")
             if common.run(common.build_command(), env=common.dev_environment()).returncode:
@@ -143,13 +123,11 @@ def main() -> int:
             verify_dist(version)
             archive = create_archive()
         except BaseException:
-            if is_new:
-                common.run_git(spore_os, "checkout", "--", str(SPORED_MANIFEST))
+            common.run_git(spore_os, "checkout", "--", str(SPORED_MANIFEST))
             raise
 
-        if is_new:
-            common.commit_and_push(spore_os, [str(SPORED_MANIFEST)], common.release_subject(version))
-            print(f"Bumped spored to {version}; committed and pushed {common.head(spore_os)[:7]} in spore-os.")
+        common.commit_and_push(spore_os, [str(SPORED_MANIFEST)], common.release_subject(version))
+        print(f"Bumped spored to {version}; committed and pushed {common.head(spore_os)[:7]} in spore-os.")
 
         common.write_flat_yaml(
             DIST / "release.yaml",
@@ -161,7 +139,7 @@ def main() -> int:
                 **{f"commit-{name}": common.head(SIBLING_ROOT / name) for name in COMPONENTS},
             },
         )
-        created = common.ensure_notes(is_new)
+        created = common.ensure_notes(True)
     except (OSError, ReleaseError) as error:
         print(f"\nRelease failed: {error}", file=sys.stderr)
         return 1
