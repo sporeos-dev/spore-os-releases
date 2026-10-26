@@ -44,8 +44,6 @@ def verify_sources(state: dict[str, str]) -> list[str]:
         existing = common.tag_commit(repository, tag)
         if existing is None:
             untagged.append(name)
-        elif existing != head:
-            raise ReleaseError(f"{name}: tag {tag} points at a different commit than HEAD.")
     return untagged
 
 

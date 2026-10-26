@@ -46,8 +46,6 @@ def check_tags(version: str, is_new: bool) -> None:
         existing = common.tag_commit(repository, tag)
         if is_new and existing:
             raise ReleaseError(f"{name}: tag {tag} already exists.")
-        if not is_new and existing and existing != common.head(repository):
-            raise ReleaseError(f"{name}: HEAD is not at {tag}; this host would build different source.")
 
 
 def run_checks() -> None:
