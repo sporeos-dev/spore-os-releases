@@ -78,7 +78,7 @@ def publish_github_release(state: dict[str, str], body: str) -> None:
         gh("release", "create", tag, archive, *flags, "--target", common.head(REPOSITORY_ROOT))
 
 
-def update_catalog(state: dict[str, str]) -> None:
+def merged_catalog(state: dict[str, str]) -> list[dict]:
     opsys, _, arch = state["platform"].partition("-")
     platform_entry = {
         "opsys": opsys,
@@ -102,7 +102,7 @@ def update_catalog(state: dict[str, str]) -> None:
     ]
     release["platforms"].append(platform_entry)
     release["platforms"].sort(key=lambda p: (p["opsys"], p.get("arch", "")))
-    common.write_catalog(releases)
+    return releases
 
 
 def main() -> int:
@@ -111,12 +111,14 @@ def main() -> int:
         version = state["version"]
         common.gate_repositories(fetch=True)
         untagged = verify_sources(state)
-        body = common.render_release_body(version)
+        releases = merged_catalog(state)
+        release = next(r for r in releases if r["version"] == version)
+        body = common.render_release_body(release)
         gh("auth", "status")
 
         tag_components(untagged, version)
         publish_github_release(state, body)
-        update_catalog(state)
+        common.write_catalog(releases)
         common.commit_and_push(
             REPOSITORY_ROOT,
             [NOTES.name, str(common.CATALOG.relative_to(REPOSITORY_ROOT))],

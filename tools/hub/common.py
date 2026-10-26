@@ -22,7 +22,7 @@ STATE = "alpha"
 DIST = REPOSITORY_ROOT / "dist"
 CATALOG = REPOSITORY_ROOT / "releases" / "catalog.yaml"
 NOTES = REPOSITORY_ROOT / "release-notes.md"
-PREAMBLE = REPOSITORY_ROOT / "resources" / "preamble.md"
+NOTES_TEMPLATE = REPOSITORY_ROOT / "release-notes-template.md"
 NOTES_STUB_MARKER = "<!-- TODO: replace this line with the release notes, then delete this marker -->"
 
 INSTALL = SIBLING_ROOT / "spore-install"
@@ -268,43 +268,46 @@ def catalog_platforms(version: str) -> set[str]:
 
 # ---------------------------------------------------------------- release notes
 
-def notes_stub(version: str) -> str:
+def notes_stub() -> str:
     return (
-        f"## What's new in {version}\n\n{NOTES_STUB_MARKER}\n\n"
-        "## Call-to-action\n"
-        "- install using the installation scripts\n"
-        "- try some spore calls from the terminal\n"
-        "`spore SPORE.help`\n"
-        "`spore SPORE.node.list`\n"
-        "`spore SPORE.command.list`\n"
-        "- open and test Spore Shell (send commands to the hub) and Spore Witness "
-        "(watch the inputs and outputs)\n"
+        "## Call to action\n\n"
+        "- Install using the installation scripts.\n"
+        "- Try some spore calls from the terminal: `spore SPORE.help`, `spore SPORE.node.list`, "
+        "`spore SPORE.command.list`.\n"
+        "- Open Spore Shell (send commands to the hub) and Spore Witness (watch the inputs and outputs).\n\n"
+        "## Changes\n\n"
+        f"{NOTES_STUB_MARKER}\n"
     )
 
 
-def ensure_notes(version: str) -> bool:
-    """Create the notes stub unless notes for this version already exist. Returns True if created."""
-    if NOTES.is_file() and NOTES.read_text(encoding="utf-8").startswith(f"## What's new in {version}\n"):
+def ensure_notes(is_new: bool) -> bool:
+    """Write the notes stub for a new release unless it already has edits. Returns True if written."""
+    if NOTES.is_file() and (not is_new or NOTES.name in dirty_paths(REPOSITORY_ROOT)):
         return False
-    NOTES.write_text(notes_stub(version), encoding="utf-8")
+    NOTES.write_text(notes_stub(), encoding="utf-8")
     return True
 
 
-def render_release_body(version: str) -> str:
+def render_release_body(release: dict) -> str:
+    """Fill release-notes-template.md; {{ release_notes }} is the hand-written release-notes.md."""
     notes = NOTES.read_text(encoding="utf-8")
     if NOTES_STUB_MARKER in notes:
         raise ReleaseError(f"{NOTES.name} still has the TODO marker; edit it before publishing.")
-    if not notes.startswith(f"## What's new in {version}\n"):
-        raise ReleaseError(f"{NOTES.name} is not for version {version}; rerun release.")
-    return (
-        f"# Release v{version}-{STATE}\n\n"
-        f"{PREAMBLE.read_text(encoding='utf-8').strip()}\n\n"
-        f"{notes.strip()}\n\n"
-        "> [!Note]\n"
-        "> This repo is a meta-repo for releases only.\n"
-        "> Source code found in each repo by following "
-        "[this link](https://github.com/sporeos-dev/.github).\n"
-    )
+    template = NOTES_TEMPLATE.read_text(encoding="utf-8")
+    values = {
+        "name": "Spore OS",
+        "version": release["version"],
+        "state": release["state"],
+        "platforms": "\n".join(
+            f"- `{'-'.join(p[k] for k in ('opsys', 'arch') if p.get(k))}`" for p in release["platforms"]
+        ),
+        "release_notes": notes.strip(),
+    }
+    for key, value in values.items():
+        template = template.replace(f"{{{{ {key} }}}}", value)
+    if "{{" in template:
+        raise ReleaseError(f"{NOTES_TEMPLATE.name} has an unknown placeholder.")
+    return template
 
 
 # ---------------------------------------------------------------- misc

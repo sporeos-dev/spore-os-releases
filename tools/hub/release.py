@@ -158,7 +158,7 @@ def main() -> int:
                 **{f"commit-{name}": common.head(SIBLING_ROOT / name) for name in COMPONENTS},
             },
         )
-        created = common.ensure_notes(version)
+        created = common.ensure_notes(is_new)
     except (OSError, ReleaseError) as error:
         print(f"\nRelease failed: {error}", file=sys.stderr)
         return 1
