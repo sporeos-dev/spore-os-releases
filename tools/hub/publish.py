@@ -64,7 +64,7 @@ def gh(*arguments: str, check: bool = True) -> int:
 
 
 def publish_github_release(state: dict[str, str], body: str) -> None:
-    tag = f"v{release_line(state['version'])}"
+    tag = common.release_tag(release_line(state["version"]))
     archive = str(DIST / state["asset"])
     flags = ["--repo", RELEASES_SLUG, "--title", tag, "--notes", body]
     if STATE != "stable":
@@ -95,6 +95,7 @@ def merged_catalog(state: dict[str, str]) -> list[dict]:
     if release is None:
         release = {
             "version": line_version,
+            "tag": common.release_tag(line_version),
             "state": STATE,
             "platforms": [],
         }
@@ -116,8 +117,7 @@ def merged_catalog(state: dict[str, str]) -> list[dict]:
     return releases
 
 
-def release_line(version: str) -> str:
-    return ".".join(version.split(".")[:2])
+release_line = common.release_line
 
 
 def main() -> int:
@@ -145,8 +145,8 @@ def main() -> int:
         return 1
 
     print(
-        f"Published v{version} ({state['platform']}) in release v{release_line(version)}: "
-        f"https://github.com/{RELEASES_SLUG}/releases/tag/v{release_line(version)}"
+        f"Published v{version} ({state['platform']}) in release {release['tag']}: "
+        f"https://github.com/{RELEASES_SLUG}/releases/tag/{release['tag']}"
     )
     return 0
 

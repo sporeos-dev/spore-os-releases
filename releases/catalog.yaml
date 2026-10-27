@@ -3,6 +3,7 @@
 
 releases:
   - version: 0.2
+    tag: v0.2
     state: alpha
     platforms:
       - opsys: macos
@@ -25,6 +26,7 @@ releases:
         name: spore-os-install-linux-arm64.tar.gz
         checksum: sha256:4f098ac592911295770a06a1f6ea13e26c468d546382dac64f7499c5070bacb7
   - version: 0.1
+    tag: v0.1.0
     state: alpha
     platforms:
       - opsys: linux

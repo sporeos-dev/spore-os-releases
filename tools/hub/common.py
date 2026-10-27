@@ -210,11 +210,21 @@ def release_subject(version: str) -> str:
     return f"Release v{version}"
 
 
+def release_line(version: str) -> str:
+    return ".".join(version.split(".")[:2])
+
+
+def release_tag(line_version: str) -> str:
+    """Git tag of a major.minor release line: v0.1.0 for the first line, v<major>.<minor> after."""
+    return "v0.1.0" if line_version == "0.1" else f"v{line_version}"
+
+
 # ---------------------------------------------------------------- catalog
 # releases/catalog.yaml is read by the website (spore-os-site/releases.html), newest release line first:
 #
 #   releases:
 #     - version: 0.2
+#       tag: v0.2
 #       state: alpha
 #       platforms:
 #         - opsys: macos
@@ -255,7 +265,12 @@ def read_catalog() -> list[dict]:
         line_version = ".".join(version.split(".")[:2])
         release = by_line.get(line_version)
         if release is None:
-            release = {"version": line_version, "state": entry.get("state", STATE), "platforms": []}
+            release = {
+                "version": line_version,
+                "tag": entry.get("tag") or release_tag(line_version),
+                "state": entry.get("state", STATE),
+                "platforms": [],
+            }
             by_line[line_version] = release
             releases.append(release)
         for platform_entry in entry["platforms"]:
@@ -292,7 +307,7 @@ def write_catalog(releases: list[dict]) -> None:
     for release in releases:
         fields = [
             (key, release[key])
-            for key in ("version", "state")
+            for key in ("version", "tag", "state")
             if key in release
         ]
         for index, (key, value) in enumerate(fields):
