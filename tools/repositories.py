@@ -9,6 +9,7 @@ import subprocess
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 SIBLING_ROOT = REPOSITORY_ROOT.parent
+EXCLUDED_REPOSITORIES = frozenset({"flutter"})
 
 
 @dataclass(frozen=True)
@@ -24,7 +25,11 @@ def repositories() -> list[Path]:
         (
             path
             for path in SIBLING_ROOT.iterdir()
-            if path.is_dir() and (path / ".git").exists()
+            if (
+                path.is_dir()
+                and path.name not in EXCLUDED_REPOSITORIES
+                and (path / ".git").exists()
+            )
         ),
         key=lambda path: path.name.casefold(),
     )
