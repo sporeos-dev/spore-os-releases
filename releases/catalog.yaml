@@ -2,6 +2,15 @@
 # SPDX-License-Identifier: Apache-2.0
 
 releases:
+  - version: 0.2.4
+    tag: v0.2.4
+    state: alpha
+    date: 2026-10-26
+    platforms:
+      - opsys: linux
+        arch: arm64
+        name: spore-os-install-linux-arm64.tar.gz
+        checksum: sha256:4f098ac592911295770a06a1f6ea13e26c468d546382dac64f7499c5070bacb7
   - version: 0.2.3
     tag: v0.2.3
     state: alpha
