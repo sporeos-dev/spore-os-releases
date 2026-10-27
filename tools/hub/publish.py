@@ -64,7 +64,7 @@ def gh(*arguments: str, check: bool = True) -> int:
 
 
 def publish_github_release(state: dict[str, str], body: str) -> None:
-    tag = f"v{state['version']}"
+    tag = f"v{release_line(state['version'])}"
     archive = str(DIST / state["asset"])
     flags = ["--repo", RELEASES_SLUG, "--title", tag, "--notes", body]
     if STATE != "stable":
@@ -116,6 +116,10 @@ def merged_catalog(state: dict[str, str]) -> list[dict]:
     return releases
 
 
+def release_line(version: str) -> str:
+    return ".".join(version.split(".")[:2])
+
+
 def main() -> int:
     try:
         state = load_release()
@@ -123,9 +127,8 @@ def main() -> int:
         common.gate_repositories(fetch=True)
         untagged = verify_sources(state)
         releases = merged_catalog(state)
-        release = next(r for r in releases if r["version"] == ".".join(version.split(".")[:2]))
+        release = next(r for r in releases if r["version"] == release_line(version))
         body_release = dict(release)
-        body_release["version"] = version
         body = common.render_release_body(body_release)
         gh("auth", "status")
 
@@ -141,7 +144,10 @@ def main() -> int:
         print(f"Publish failed: {error}", file=sys.stderr)
         return 1
 
-    print(f"Published v{version} ({state['platform']}): https://github.com/{RELEASES_SLUG}/releases/tag/v{version}")
+    print(
+        f"Published v{version} ({state['platform']}) in release v{release_line(version)}: "
+        f"https://github.com/{RELEASES_SLUG}/releases/tag/v{release_line(version)}"
+    )
     return 0
 
 
