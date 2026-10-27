@@ -5,6 +5,13 @@ releases:
   - version: 0.2
     state: alpha
     platforms:
+      - opsys: macos
+        arch: universal
+        version: 0.2.7
+        date: 2026-10-26
+        time: 23:25:32
+        name: spore-os-install-macos-universal.tar.gz
+        checksum: sha256:656a889646ce3f2f2fb33a91198e538e232d2788f2005ae27cfdd91ef5466478
       - opsys: windows
         arch: arm64
         version: 0.2.5
@@ -17,12 +24,6 @@ releases:
         date: 2026-10-26
         name: spore-os-install-linux-arm64.tar.gz
         checksum: sha256:4f098ac592911295770a06a1f6ea13e26c468d546382dac64f7499c5070bacb7
-      - opsys: macos
-        arch: universal
-        version: 0.2.3
-        date: 2026-10-26
-        name: spore-os-install-macos-universal.tar.gz
-        checksum: sha256:12dad0630d03312be9f63b9dabcad1d631fa62c7b0f544acf903817ff6ad0286
   - version: 0.1
     state: alpha
     platforms:
