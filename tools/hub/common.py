@@ -336,9 +336,9 @@ def notes_stub() -> str:
     )
 
 
-def ensure_notes(is_new: bool) -> bool:
-    """Write the notes stub for a new release unless it already has edits. Returns True if written."""
-    if NOTES.is_file() and (not is_new or NOTES.name in dirty_paths(REPOSITORY_ROOT)):
+def ensure_notes() -> bool:
+    """Write the notes stub only when release-notes.md does not exist."""
+    if NOTES.is_file():
         return False
     NOTES.write_text(notes_stub(), encoding="utf-8")
     return True
