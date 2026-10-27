@@ -7,7 +7,15 @@ from dataclasses import dataclass
 from pathlib import Path
 import sys
 
-from repositories import REPOSITORY_ROOT, SIBLING_ROOT, git, location, repositories, tracking_status
+from repositories import (
+    REPOSITORY_ROOT,
+    SIBLING_ROOT,
+    TrackingStatus,
+    git,
+    location,
+    repositories,
+    tracking_status,
+)
 
 
 @dataclass(frozen=True)
@@ -47,30 +55,28 @@ def main() -> int:
         print(f"No sibling Git repositories found under {SIBLING_ROOT}.")
         return 0
 
-    changed_repositories: list[tuple[Path, ChangeSummary]] = []
+    repositories_needing_attention: list[
+        tuple[Path, ChangeSummary, TrackingStatus | None]
+    ] = []
     for repository in repository_paths:
         try:
             summary = repository_changes(repository)
+            tracking = tracking_status(repository)
         except (OSError, RuntimeError) as error:
             print(f"error: {error}", file=sys.stderr)
             return 1
-        if summary.total:
-            changed_repositories.append((repository, summary))
+        if summary.total or (tracking is not None and tracking.behind):
+            repositories_needing_attention.append((repository, summary, tracking))
 
-    if not changed_repositories:
-        print("No changes found in sibling repositories.")
+    if not repositories_needing_attention:
+        print("No changes or repositories behind their upstreams found.")
         return 0
 
     print(
         "Repository (relative to spore-os-releases)   staged  unstaged  "
         "untracked  total  branch  upstream  ahead  behind"
     )
-    for repository, summary in changed_repositories:
-        try:
-            tracking = tracking_status(repository)
-        except RuntimeError as error:
-            print(f"error: {error}", file=sys.stderr)
-            return 1
+    for repository, summary, tracking in repositories_needing_attention:
         branch = tracking.branch if tracking else " detached"
         upstream = tracking.upstream if tracking else "—"
         ahead = tracking.ahead if tracking else "—"
