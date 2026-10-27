@@ -8,7 +8,7 @@ which the website reads.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import datetime
 import sys
 
 import common
@@ -78,28 +78,41 @@ def publish_github_release(state: dict[str, str], body: str) -> None:
 
 def merged_catalog(state: dict[str, str]) -> list[dict]:
     opsys, _, arch = state["platform"].partition("-")
+    now = datetime.now()
+    version = state["version"]
+    line_version = ".".join(version.split(".")[:2])
     platform_entry = {
         "opsys": opsys,
         "arch": arch,
+        "version": version,
+        "date": now.date().isoformat(),
+        "time": now.strftime("%H:%M:%S"),
         "name": state["asset"],
         "checksum": state["checksum"],
     }
     releases = common.read_catalog()
-    release = next((r for r in releases if r.get("version") == state["version"]), None)
+    release = next((r for r in releases if r.get("version") == line_version), None)
     if release is None:
         release = {
-            "version": state["version"],
-            "tag": f"v{state['version']}",
+            "version": line_version,
             "state": STATE,
-            "date": date.today().isoformat(),
             "platforms": [],
         }
         releases.insert(0, release)
     release["platforms"] = [
-        p for p in release["platforms"] if (p.get("opsys"), p.get("arch")) != (opsys, arch)
+        p
+        for p in release["platforms"]
+        if (p.get("opsys"), p.get("arch")) != (opsys, arch)
+        or common.version_key(p["version"]) > common.version_key(version)
     ]
     release["platforms"].append(platform_entry)
-    release["platforms"].sort(key=lambda p: (p["opsys"], p.get("arch", "")))
+    release["platforms"].sort(
+        key=lambda p: (
+            tuple(-int(part) for part in p["version"].split(".")),
+            p["opsys"],
+            p.get("arch", ""),
+        )
+    )
     return releases
 
 
@@ -110,8 +123,10 @@ def main() -> int:
         common.gate_repositories(fetch=True)
         untagged = verify_sources(state)
         releases = merged_catalog(state)
-        release = next(r for r in releases if r["version"] == version)
-        body = common.render_release_body(release)
+        release = next(r for r in releases if r["version"] == ".".join(version.split(".")[:2]))
+        body_release = dict(release)
+        body_release["version"] = version
+        body = common.render_release_body(body_release)
         gh("auth", "status")
 
         tag_components(untagged, version)

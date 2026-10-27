@@ -2,53 +2,42 @@
 # SPDX-License-Identifier: Apache-2.0
 
 releases:
-  - version: 0.2.5
-    tag: v0.2.5
+  - version: 0.2
     state: alpha
-    date: 2026-10-27
     platforms:
       - opsys: windows
         arch: arm64
+        version: 0.2.5
+        date: 2026-10-27
         name: spore-os-install-windows-arm64.zip
         checksum: sha256:2b4855d2a071b8f80b36a1ecbbeea3d77d72b16221f79909169588b28eca896b
-  - version: 0.2.4
-    tag: v0.2.4
-    state: alpha
-    date: 2026-10-26
-    platforms:
       - opsys: linux
         arch: arm64
+        version: 0.2.4
+        date: 2026-10-26
         name: spore-os-install-linux-arm64.tar.gz
         checksum: sha256:4f098ac592911295770a06a1f6ea13e26c468d546382dac64f7499c5070bacb7
-  - version: 0.2.3
-    tag: v0.2.3
-    state: alpha
-    date: 2026-10-26
-    platforms:
       - opsys: macos
         arch: universal
+        version: 0.2.3
+        date: 2026-10-26
         name: spore-os-install-macos-universal.tar.gz
         checksum: sha256:12dad0630d03312be9f63b9dabcad1d631fa62c7b0f544acf903817ff6ad0286
-  - version: 0.2.2
-    tag: v0.2.2
+  - version: 0.1
     state: alpha
-    date: 2026-10-26
-    platforms:
-      - opsys: macos
-        arch: universal
-        name: spore-os-install-macos-universal.tar.gz
-        checksum: sha256:d5884c4f17a39f37077d0ca547ffdba2c8fe5504663c9ef9ec202645098b0327
-  - version: 0.1.0
-    tag: v0.1.0
-    state: alpha
-    date: 2026-06-07
     platforms:
       - opsys: linux
+        version: 0.1.0
+        date: 2026-06-07
         name: spore-os-install-linux.tar.gz
         checksum: sha256:09c9dc84f70f158fc8a701c34ca62ce1c0946e164953ca92b60b2274aa938a08
       - opsys: macos
+        version: 0.1.0
+        date: 2026-06-07
         name: spore-os-install-macos.tar.gz
         checksum: sha256:7b4227edfef89ce6190e939328e1d18b2efe5ab70600aa513394d85ebb44a88e
       - opsys: windows
+        version: 0.1.0
+        date: 2026-06-07
         name: spore-os-install-windows.zip
         checksum: sha256:2f2fb08a7044971a244156346bb9397325efc4079ec39151a9ea0d5efdda39ee

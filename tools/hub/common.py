@@ -62,6 +62,10 @@ class ReleaseError(Exception):
     pass
 
 
+def version_key(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in version.split("."))
+
+
 # ---------------------------------------------------------------- platform
 
 def host_platform() -> tuple[str, str]:
@@ -207,23 +211,24 @@ def release_subject(version: str) -> str:
 
 
 # ---------------------------------------------------------------- catalog
-# releases/catalog.yaml is read by the website (spore-os-site/releases.html), newest release first:
+# releases/catalog.yaml is read by the website (spore-os-site/releases.html), newest release line first:
 #
 #   releases:
-#     - version: 0.2.2
-#       tag: v0.2.2
+#     - version: 0.2
 #       state: alpha
-#       date: 2026-10-26
 #       platforms:
 #         - opsys: macos
 #           arch: universal
+#           version: 0.2.2
+#           date: 2026-10-26
+#           time: 12:34:56
 #           name: spore-os-install-macos-universal.tar.gz
 #           checksum: sha256:...
 
 def read_catalog() -> list[dict]:
-    releases: list[dict] = []
+    entries: list[dict] = []
     if not CATALOG.is_file():
-        return releases
+        return entries
     for line in CATALOG.read_text(encoding="utf-8").splitlines():
         stripped = line.strip()
         if not stripped or stripped.startswith("#") or stripped == "releases:":
@@ -232,26 +237,77 @@ def read_catalog() -> list[dict]:
         if stripped.startswith("- "):
             stripped = stripped[2:]
             if indent == 2:
-                releases.append({"platforms": []})
+                entries.append({"platforms": []})
             else:
-                releases[-1]["platforms"].append({})
+                entries[-1]["platforms"].append({})
         key, _, value = stripped.partition(":")
         if key == "platforms":
             continue
-        target = releases[-1] if indent <= 4 else releases[-1]["platforms"][-1]
+        target = entries[-1] if indent <= 4 else entries[-1]["platforms"][-1]
         target[key] = value.strip()
+
+    releases: list[dict] = []
+    by_line: dict[str, dict] = {}
+    for entry in entries:
+        version = entry.get("version")
+        if not version:
+            continue
+        line_version = ".".join(version.split(".")[:2])
+        release = by_line.get(line_version)
+        if release is None:
+            release = {"version": line_version, "state": entry.get("state", STATE), "platforms": []}
+            by_line[line_version] = release
+            releases.append(release)
+        for platform_entry in entry["platforms"]:
+            normalized = dict(platform_entry)
+            normalized.setdefault("version", version)
+            if entry.get("date"):
+                normalized.setdefault("date", entry["date"])
+            if entry.get("time"):
+                normalized.setdefault("time", entry["time"])
+            key = (
+                normalized.get("opsys"),
+                normalized.get("arch", ""),
+            )
+            existing = next(
+                (
+                    platform
+                    for platform in release["platforms"]
+                    if (platform.get("opsys"), platform.get("arch", "")) == key
+                ),
+                None,
+            )
+            if existing is None or version_key(normalized["version"]) >= version_key(existing["version"]):
+                release["platforms"] = [
+                    platform
+                    for platform in release["platforms"]
+                    if (platform.get("opsys"), platform.get("arch", "")) != key
+                ]
+                release["platforms"].append(normalized)
     return releases
 
 
 def write_catalog(releases: list[dict]) -> None:
     lines = ["# Copyright 2026 Matt Harrison", "# SPDX-License-Identifier: Apache-2.0", "", "releases:"]
     for release in releases:
-        fields = [(k, v) for k, v in release.items() if k != "platforms"]
+        fields = [
+            (key, release[key])
+            for key in ("version", "state")
+            if key in release
+        ]
         for index, (key, value) in enumerate(fields):
             lines.append(f"{'  - ' if index == 0 else '    '}{key}: {value}")
         lines.append("    platforms:")
-        for entry in release["platforms"]:
-            for index, (key, value) in enumerate(entry.items()):
+        for entry in sorted(
+            release["platforms"],
+            key=lambda platform: (tuple(-int(part) for part in platform["version"].split(".")), platform["opsys"]),
+        ):
+            fields = [
+                (key, entry[key])
+                for key in ("opsys", "arch", "version", "date", "time", "name", "checksum")
+                if key in entry
+            ]
+            for index, (key, value) in enumerate(fields):
                 lines.append(f"{'      - ' if index == 0 else '        '}{key}: {value}")
     CATALOG.parent.mkdir(parents=True, exist_ok=True)
     CATALOG.write_text("\n".join(lines) + "\n", encoding="utf-8")
