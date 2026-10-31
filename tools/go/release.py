@@ -14,6 +14,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 
 RELEASE_TRUST = "standard"
+SUBPROCESS_TIMEOUT_SECONDS = 30
 
 
 def project_root() -> Path:
@@ -370,7 +371,14 @@ def run_git(root: Path, *arguments: str) -> str:
 			check=True,
 			capture_output=True,
 			text=True,
+			timeout=SUBPROCESS_TIMEOUT_SECONDS,
+			env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
 		)
+	except subprocess.TimeoutExpired as error:
+		raise RuntimeError(
+			f"git {' '.join(arguments)} timed out after "
+			f"{SUBPROCESS_TIMEOUT_SECONDS} seconds"
+		) from error
 	except subprocess.CalledProcessError as error:
 		message = error.stderr.strip() or error.stdout.strip() or str(error)
 		raise RuntimeError(f"git {' '.join(arguments)} failed: {message}") from error

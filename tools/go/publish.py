@@ -13,6 +13,7 @@ from zipfile import BadZipFile, ZipFile
 
 
 FOUNDRY_REPOSITORY = "sporeos-dev/foundry-releases"
+SUBPROCESS_TIMEOUT_SECONDS = 30
 
 
 def project_root() -> Path:
@@ -197,7 +198,14 @@ def run_git(root: Path, *arguments: str) -> str:
 			check=True,
 			capture_output=True,
 			text=True,
+			timeout=SUBPROCESS_TIMEOUT_SECONDS,
+			env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
 		)
+	except subprocess.TimeoutExpired as error:
+		raise RuntimeError(
+			f"git {' '.join(arguments)} timed out after "
+			f"{SUBPROCESS_TIMEOUT_SECONDS} seconds"
+		) from error
 	except subprocess.CalledProcessError as error:
 		message = error.stderr.strip() or error.stdout.strip() or str(error)
 		raise RuntimeError(f"git {' '.join(arguments)} failed: {message}") from error
@@ -386,7 +394,14 @@ def run_gh(*arguments: str) -> str:
 			check=True,
 			capture_output=True,
 			text=True,
+			timeout=SUBPROCESS_TIMEOUT_SECONDS,
+			env={**os.environ, "GH_PROMPT_DISABLED": "1"},
 		)
+	except subprocess.TimeoutExpired as error:
+		raise RuntimeError(
+			f"gh {' '.join(arguments)} timed out after "
+			f"{SUBPROCESS_TIMEOUT_SECONDS} seconds"
+		) from error
 	except subprocess.CalledProcessError as error:
 		message = error.stderr.strip() or error.stdout.strip() or str(error)
 		raise RuntimeError(f"gh {' '.join(arguments)} failed: {message}") from error
@@ -419,18 +434,26 @@ def verify_gh_authentication() -> None:
 
 
 def foundry_release_exists(tag: str) -> bool:
-	result = subprocess.run(
-		[
-			github_cli(),
-			"release",
-			"view",
-			tag,
-			"--repo",
-			FOUNDRY_REPOSITORY,
-		],
-		capture_output=True,
-		text=True,
-	)
+	try:
+		result = subprocess.run(
+			[
+				github_cli(),
+				"release",
+				"view",
+				tag,
+				"--repo",
+				FOUNDRY_REPOSITORY,
+			],
+			capture_output=True,
+			text=True,
+			timeout=SUBPROCESS_TIMEOUT_SECONDS,
+			env={**os.environ, "GH_PROMPT_DISABLED": "1"},
+		)
+	except subprocess.TimeoutExpired as error:
+		raise RuntimeError(
+			f"gh release view {tag} timed out after "
+			f"{SUBPROCESS_TIMEOUT_SECONDS} seconds"
+		) from error
 	if result.returncode == 0:
 		return True
 	if result.returncode == 1:
