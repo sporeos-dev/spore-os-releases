@@ -8,11 +8,11 @@ releases:
     platforms:
       - opsys: macos
         arch: universal
-        version: 0.2.12
+        version: 0.2.13
         date: 2026-10-31
-        time: 15:16:03
+        time: 16:35:38
         name: spore-os-install-macos-universal.tar.gz
-        checksum: sha256:2f4cd1874f59cb1101eed1b93004e3837da60fa1644350a90546ccedf306e67a
+        checksum: sha256:71120990f7c5d560dfdda5a14f0dc81cf95e2cbf7332ec24e7584585bdc9b82c
       - opsys: linux
         arch: arm64
         version: 0.2.9
