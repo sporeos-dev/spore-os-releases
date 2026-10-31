@@ -9,6 +9,7 @@ which the website reads.
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 import sys
 
 import common
@@ -63,17 +64,23 @@ def gh(*arguments: str, check: bool = True) -> int:
     return result.returncode
 
 
-def publish_github_release(state: dict[str, str], body: str) -> None:
+def write_checksums(release: dict) -> Path:
+    path = DIST / "SHA256SUMS"
+    path.write_text("\n".join(common.checksum_lines(release)) + "\n", encoding="utf-8")
+    return path
+
+
+def publish_github_release(state: dict[str, str], body: str, checksums: Path) -> None:
     tag = common.release_tag(release_line(state["version"]))
-    archive = str(DIST / state["asset"])
+    assets = [str(DIST / state["asset"]), str(checksums)]
     flags = ["--repo", RELEASES_SLUG, "--title", tag, "--notes", body]
     if STATE != "stable":
         flags.append("--prerelease")
     if gh("release", "view", tag, "--repo", RELEASES_SLUG, check=False) == 0:
         gh("release", "edit", tag, *flags)
-        gh("release", "upload", tag, archive, "--repo", RELEASES_SLUG, "--clobber")
+        gh("release", "upload", tag, *assets, "--repo", RELEASES_SLUG, "--clobber")
     else:
-        gh("release", "create", tag, archive, *flags, "--target", common.head(REPOSITORY_ROOT))
+        gh("release", "create", tag, *assets, *flags, "--target", common.head(REPOSITORY_ROOT))
 
 
 def merged_catalog(state: dict[str, str]) -> list[dict]:
@@ -130,10 +137,11 @@ def main() -> int:
         release = next(r for r in releases if r["version"] == release_line(version))
         body_release = dict(release)
         body = common.render_release_body(body_release)
+        checksums = write_checksums(release)
         gh("auth", "status")
 
         tag_components(untagged, version)
-        publish_github_release(state, body)
+        publish_github_release(state, body, checksums)
         common.write_catalog(releases)
         common.commit_and_push(
             REPOSITORY_ROOT,

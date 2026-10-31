@@ -359,6 +359,13 @@ def ensure_notes() -> bool:
     return True
 
 
+def checksum_lines(release: dict) -> list[str]:
+    """`shasum -c` lines (`<hex>  <name>`) for every archive in a catalog release."""
+    return sorted(
+        f"{p['checksum'].removeprefix('sha256:')}  {p['name']}" for p in release["platforms"]
+    )
+
+
 def render_release_body(release: dict) -> str:
     """Fill release-notes-template.md; {{ release_notes }} is the hand-written release-notes.md."""
     notes = NOTES.read_text(encoding="utf-8")
@@ -373,6 +380,7 @@ def render_release_body(release: dict) -> str:
             f"- `{'-'.join(p[k] for k in ('opsys', 'arch') if p.get(k))}`" for p in release["platforms"]
         ),
         "release_notes": notes.strip(),
+        "checksums": "\n".join(checksum_lines(release)),
     }
     for key, value in values.items():
         template = template.replace(f"{{{{ {key} }}}}", value)
