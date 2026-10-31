@@ -106,6 +106,24 @@ def catalog_value(path: Path, key: str) -> str:
 	raise ValueError(f"The catalog has no {key} value: {path}")
 
 
+def catalog_manifest_checksum(path: Path, version: str) -> str:
+	in_checksums = False
+	for line in path.read_text(encoding="utf-8").splitlines():
+		if line == "checksums:":
+			in_checksums = True
+			continue
+		if in_checksums and line and not line.startswith("  "):
+			in_checksums = False
+		if not in_checksums:
+			continue
+		match = re.fullmatch(rf"  {re.escape(version)}:\s*(\S+)", line)
+		if match:
+			return match.group(1)
+	raise ValueError(
+		f"The release catalog has no manifest checksum for version {version}: {path}"
+	)
+
+
 def foundry_root() -> Path:
 	dev_directory = os.environ.get("DEV")
 	if dev_directory:
@@ -195,6 +213,12 @@ def foundry_release_line(version: str) -> str:
 	if not match:
 		raise ValueError(f"The manifest version is not a.b.c: {version}")
 	return f"{match.group(1)}.{match.group(2)}.x"
+
+
+def catalog_release_line(version: str) -> str:
+	if re.fullmatch(r"[0-9]+\.[0-9]+", version):
+		return f"{version}.x"
+	return foundry_release_line(version)
 
 
 def foundry_release_tag(product: str, version: str) -> str:
@@ -340,7 +364,7 @@ def render_release_notes(
 ) -> str:
 	values = {
 		"name": catalog_value(catalog, "name"),
-		"release_line": foundry_release_line(catalog_value(catalog, "version")),
+		"release_line": catalog_release_line(catalog_value(catalog, "version")),
 		"state": catalog_value(catalog, "state"),
 		"description": catalog_value(catalog, "description"),
 		"platforms": "\n".join(f"- `{name}`" for name in release_platforms(catalog)),
@@ -543,12 +567,12 @@ def main() -> int:
 			)
 		if catalog_value(catalog, "id") != release_metadata["id"]:
 			raise ValueError("The release catalog ID does not match the manifest.")
-		if catalog_value(catalog, "version") != release_metadata["version"]:
-			raise ValueError("The release catalog version does not match the manifest.")
+		if catalog_value(catalog, "version") != foundry_release_line(release_metadata["version"]).removesuffix(".x"):
+			raise ValueError("The release catalog version does not match the manifest release line.")
 		if catalog_value(catalog, "manifest") != manifest.name:
 			raise ValueError("The release catalog manifest does not match the manifest file.")
-		if catalog_value(catalog, "checksum") != file_checksum(release_manifest):
-			raise ValueError("The release catalog checksum does not match the manifest.")
+		if catalog_manifest_checksum(catalog, release_metadata["version"]) != file_checksum(release_manifest):
+			raise ValueError("The release catalog manifest checksum does not match the manifest.")
 		product = release_product(root, catalog)
 		release_notes = required_release_notes(root)
 		release_notes_template = required_release_notes_template()

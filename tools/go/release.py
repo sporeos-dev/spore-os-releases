@@ -122,10 +122,11 @@ def replace_manifest_trust(path: Path, trust: str) -> None:
 	raise ValueError(f"The manifest has no top-level trust field: {path}")
 
 
-def write_platform_catalog(root: Path, executable: Path) -> Path:
+def write_platform_catalog(root: Path, executable: Path, version: str) -> Path:
 	name = f"{platform_name()}-{architecture_name()}.catalog.yaml"
 	catalog = root / name
 	catalog.write_text(
+		f"version: {version}\n"
 		f"{executable.name}: {file_checksum(executable)}\n",
 		encoding="utf-8",
 	)
@@ -149,34 +150,69 @@ def combine_catalogs(
 	manifest: Path,
 	metadata: dict[str, str],
 ) -> Path:
-	releases: list[tuple[str, str, list[tuple[str, str]]]] = []
+	releases: list[tuple[str, str, str, list[tuple[str, str]]]] = []
 	for platform_catalog in sorted(root.glob("*.catalog.yaml")):
 		if platform_catalog == catalog:
 			continue
 
 		opsys, arch = platform_catalog_identity(platform_catalog)
+		platform_version: str | None = None
 		files: list[tuple[str, str]] = []
 		for line in platform_catalog.read_text(encoding="utf-8").splitlines():
 			if not line or line.startswith("#") or ":" not in line:
 				continue
 			name, _, checksum = line.partition(":")
+			if name.strip() == "version":
+				platform_version = checksum.strip()
+				continue
 			if name and checksum.strip():
 				files.append((name.strip(), checksum.strip()))
+		if not platform_version:
+			raise ValueError(
+				f"The platform catalog has no build version: {platform_catalog}"
+			)
 		if not files:
 			raise ValueError(
 				f"The platform catalog has no file checksums: {platform_catalog}"
 			)
 
-		releases.append((opsys, arch, files))
+		releases.append((opsys, arch, platform_version, files))
 
 	content = catalog.read_text(encoding="utf-8").rstrip("\n")
+	checksums: dict[str, str] = {}
+	checksums.update(read_version_checksums(content, 0))
+	store_catalog = store_catalog_path()
+	if store_catalog.is_file():
+		store_content = store_catalog.read_text(encoding="utf-8")
+		for entry in store_content.split("\n  - ")[1:]:
+			if re.search(
+				rf"^(?:    )?id:\s*{re.escape(metadata['id'])}\s*$",
+				entry,
+				re.MULTILINE,
+			):
+				checksums.update(read_version_checksums(entry, 4))
+				break
+	checksums[metadata["version"]] = file_checksum(manifest)
+
+	content_lines = []
+	skip_checksums = False
+	for line in content.splitlines():
+		if line == "checksums:":
+			skip_checksums = True
+			continue
+		if skip_checksums and line and not line.startswith("  "):
+			skip_checksums = False
+		if skip_checksums or line == "checksum:" or line.startswith("checksum: "):
+			continue
+		content_lines.append(line)
+	content = "\n".join(content_lines)
+
 	fields = {
 		"id": metadata["id"],
 		"name": metadata["name"],
-		"version": metadata["version"],
+		"version": f"{metadata['version'].rsplit('.', 1)[0]}",
 		"description": metadata["description"],
 		"manifest": manifest.name,
-		"checksum": file_checksum(manifest),
 	}
 	for key, value in fields.items():
 		field = f"{key}: {value}"
@@ -189,15 +225,27 @@ def combine_catalogs(
 			lines.append(field)
 		content = "\n".join(lines)
 
+	lines = content.splitlines()
+	insert_at = next(
+		(index for index, line in enumerate(lines) if line.startswith(("date:", "releases:"))),
+		len(lines),
+	)
+	lines[insert_at:insert_at] = [
+		"checksums:",
+		*(f"  {version}: {checksums[version]}" for version in sorted(checksums)),
+	]
+	content = "\n".join(lines)
+
 	build_time = datetime.now()
 	content += (
 		f"\ndate: {build_time:%Y-%m-%d}\n"
 		f"time: {build_time:%H:%M:%S}\n"
 		"releases:\n"
 	)
-	for opsys, arch, files in releases:
+	for opsys, arch, platform_version, files in releases:
 		content += f"  - opsys: {opsys}\n"
 		content += f"    arch: {arch}\n"
+		content += f"    version: {platform_version}\n"
 		content += "    artifacts:\n"
 		content += "".join(
 			f"      - name: {file_name}\n"
@@ -208,6 +256,28 @@ def combine_catalogs(
 	output_catalog = output_directory / "catalog.yaml"
 	output_catalog.write_text(content, encoding="utf-8")
 	return output_catalog
+
+
+def read_version_checksums(content: str, indentation: int) -> dict[str, str]:
+	"""Read a checksums mapping at the requested YAML indentation."""
+	prefix = " " * indentation
+	entry_prefix = " " * (indentation + 2)
+	checksums: dict[str, str] = {}
+	in_checksums = False
+	for line in content.splitlines():
+		if line == f"{prefix}checksums:":
+			in_checksums = True
+			continue
+		if in_checksums and line and not line.startswith(entry_prefix):
+			break
+		if in_checksums:
+			match = re.fullmatch(
+				rf"{re.escape(entry_prefix)}([0-9]+\.[0-9]+\.[0-9]+):\s*(\S+)",
+				line,
+			)
+			if match:
+				checksums[match.group(1)] = match.group(2)
+	return checksums
 
 
 def store_catalog_path() -> Path:
@@ -451,7 +521,7 @@ def main() -> int:
 	print(f"Created release manifest: {release_manifest}")
 
 	try:
-		platform_catalog = write_platform_catalog(root, executable)
+		platform_catalog = write_platform_catalog(root, executable, version)
 	except (OSError, UnicodeError, ValueError) as error:
 		print(f"Failed to create platform catalog: {error}", file=sys.stderr)
 		return 1
