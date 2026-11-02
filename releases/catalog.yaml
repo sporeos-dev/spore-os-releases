@@ -8,11 +8,11 @@ releases:
     platforms:
       - opsys: linux
         arch: arm64
-        version: 0.2.14
+        version: 0.2.15
         date: 2026-11-01
-        time: 16:34:57
+        time: 17:45:28
         name: spore-os-install-linux-arm64.tar.gz
-        checksum: sha256:c4299a9b2c81dd4df169abbfc5804a3625c16717f2f55a01da120a904c26e63d
+        checksum: sha256:2da9b0d8de505eef520a3d7432be97254daf6833c8642926adecff1d5dfbd20a
       - opsys: macos
         arch: universal
         version: 0.2.13
