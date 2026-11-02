@@ -128,9 +128,10 @@ def replace_manifest_trust(path: Path, trust: str) -> None:
 def write_platform_catalog(root: Path, executable: Path, version: str) -> Path:
 	name = f"{platform_name()}-{architecture_name()}.catalog.yaml"
 	catalog = root / name
+	executable_name = executable.stem if executable.suffix.lower() == ".exe" else executable.name
 	catalog.write_text(
 		f"version: {version}\n"
-		f"{executable.name}: {file_checksum(executable)}\n",
+		f"{executable_name}:  {file_checksum(executable)}\n",
 		encoding="utf-8",
 	)
 	return catalog
