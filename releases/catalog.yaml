@@ -8,11 +8,11 @@ releases:
     platforms:
       - opsys: windows
         arch: arm64
-        version: 0.2.18
-        date: 2026-11-01
-        time: 23:58:17
+        version: 0.2.19
+        date: 2026-11-02
+        time: 01:03:11
         name: spore-os-install-windows-arm64.zip
-        checksum: sha256:b6e89f807b0e59834c1a29ce54b4b386d1e9a6a067ebeefe8bb45fadf92ad4cc
+        checksum: sha256:77f7014df633375144cc6990f25c89879b4d7d206a895d8abc2d6b058397c9fe
       - opsys: linux
         arch: arm64
         version: 0.2.15
