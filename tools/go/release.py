@@ -35,6 +35,8 @@ def required_file(name: str, root: Path) -> Path:
 		raise ValueError(f"The {name} environment variable must be set.")
 
 	path = Path(value).expanduser()
+	if name == "executable" and platform.system() == "Windows" and not path.name.lower().endswith(".exe"):
+		path = path.with_name(path.name + ".exe")
 	if not path.is_absolute():
 		path = root / path
 	path = path.resolve()
